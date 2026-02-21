@@ -18,7 +18,7 @@ export function ContractRow({ contract }: { contract: EscrowContract }) {
           {contract.counterparty}
         </span>
         <span className="font-mono text-sm font-semibold">
-          {contract.amount.toLocaleString()} <span className="text-xs text-muted-foreground">USDC</span>
+          {contract.amount.toLocaleString()} <span className="text-xs text-muted-foreground">{contract.currency}</span>
         </span>
         <StatusBadge status={contract.status} />
         <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />

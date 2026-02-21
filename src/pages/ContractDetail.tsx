@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useState } from "react";
-import { Lock, Calendar, FileText, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Lock, Calendar, FileText, CheckCircle2, AlertTriangle, Wallet, Upload, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -50,11 +50,16 @@ function ProgressStepper({ currentStep }: { currentStep: number }) {
   );
 }
 
+type SellerState = "not-connected" | "connected" | "dispute";
+
 export default function ContractDetail() {
   const { id } = useParams();
   const contract = mockContracts.find((c) => c.id === id) ?? mockContracts[0];
   const [releaseOpen, setReleaseOpen] = useState(false);
   const [disputeOpen, setDisputeOpen] = useState(false);
+  const [sellerState, setSellerState] = useState<SellerState>(
+    contract.status === "Disputed" ? "dispute" : "not-connected"
+  );
 
   const stepIndex =
     contract.status === "Waiting" ? 0
@@ -63,27 +68,41 @@ export default function ContractDetail() {
     : 3;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background cyber-grid">
       <Navbar />
-      <main className="container max-w-4xl py-8">
+      <main className="container max-w-5xl py-8">
+        {/* Seller invitation headline */}
+        <div className="mb-6 text-center">
+          <h1 className="font-display text-2xl font-bold">You've been invited to a Secure Transaction</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Powered by ArtGuard on Avalanche</p>
+        </div>
+
         <div className="mb-8 flex justify-center">
           <ProgressStepper currentStep={stepIndex} />
         </div>
+
+        {/* Dispute banner */}
+        {sellerState === "dispute" && (
+          <div className="mb-6 flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+            <ShieldAlert className="h-5 w-5 text-destructive" />
+            <p className="text-sm font-medium text-destructive">This contract is under arbitration. Funds are frozen pending jury resolution.</p>
+          </div>
+        )}
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* Contract Details */}
           <div className="rounded-xl border border-border bg-card p-6 space-y-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">{contract.projectName}</h2>
+              <h2 className="font-display text-lg font-semibold">{contract.projectName}</h2>
               <StatusBadge status={contract.status} />
             </div>
 
-            <div className="flex items-center gap-3 rounded-lg bg-secondary/50 p-4">
+            <div className="flex items-center gap-3 rounded-lg bg-secondary/50 p-4 cyber-border">
               <Lock className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-xs text-muted-foreground">Locked Amount</p>
                 <p className="font-mono text-xl font-bold">
-                  {contract.amount.toLocaleString()} <span className="text-sm text-muted-foreground">USDC</span>
+                  {contract.amount.toLocaleString()} <span className="text-sm text-muted-foreground">{contract.currency}</span>
                 </p>
               </div>
             </div>
@@ -98,40 +117,63 @@ export default function ContractDetail() {
                 <span className="text-muted-foreground">Deadline: {contract.deadline}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Counterparty:</span>
+                <span className="text-xs text-muted-foreground">Client:</span>
                 <span className="font-mono text-xs">{contract.counterparty}</span>
               </div>
             </div>
           </div>
 
-          {/* Action Area */}
+          {/* Seller Action Area */}
           <div className="rounded-xl border border-border bg-card p-6 flex flex-col justify-between">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Actions</h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                Review the deliverables and take action on this contract.
-              </p>
-            </div>
+            {sellerState === "not-connected" && (
+              <div className="flex flex-col items-center justify-center gap-4 py-8">
+                <Wallet className="h-10 w-10 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground text-center">Connect your wallet to accept this job and begin working.</p>
+                <Button className="gap-2 glow-primary" onClick={() => setSellerState("connected")}>
+                  <Wallet className="h-4 w-4" />
+                  Connect Wallet to Accept Job
+                </Button>
+              </div>
+            )}
 
-            <div className="space-y-3">
-              <Button
-                className="w-full gap-2 bg-success text-success-foreground hover:bg-success/90 glow-success"
-                size="lg"
-                onClick={() => setReleaseOpen(true)}
-              >
-                <CheckCircle2 className="h-5 w-5" />
-                Release Funds
-              </Button>
-              <Button
-                variant="destructive"
-                className="w-full gap-2 glow-destructive"
-                size="lg"
-                onClick={() => setDisputeOpen(true)}
-              >
-                <AlertTriangle className="h-5 w-5" />
-                Raise Dispute
-              </Button>
-            </div>
+            {sellerState === "connected" && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-display text-lg font-semibold mb-2">Actions</h3>
+                  <p className="text-sm text-muted-foreground">Upload your deliverables or manage this contract.</p>
+                </div>
+                <Button className="w-full gap-2" variant="secondary" size="lg">
+                  <Upload className="h-5 w-5" />
+                  Upload Deliverables
+                </Button>
+                <div className="space-y-3">
+                  <Button
+                    className="w-full gap-2 bg-success text-success-foreground hover:bg-success/90 glow-success"
+                    size="lg"
+                    onClick={() => setReleaseOpen(true)}
+                  >
+                    <CheckCircle2 className="h-5 w-5" />
+                    Release Funds
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="w-full gap-2 glow-destructive"
+                    size="lg"
+                    onClick={() => setDisputeOpen(true)}
+                  >
+                    <AlertTriangle className="h-5 w-5" />
+                    Raise Dispute
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {sellerState === "dispute" && (
+              <div className="flex flex-col items-center justify-center gap-4 py-8">
+                <ShieldAlert className="h-10 w-10 text-destructive" />
+                <p className="text-sm text-muted-foreground text-center">This contract is under arbitration. The jury is reviewing the case.</p>
+              </div>
+            )}
           </div>
         </div>
       </main>
@@ -140,7 +182,7 @@ export default function ContractDetail() {
       <AlertDialog open={releaseOpen} onOpenChange={setReleaseOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
+            <AlertDialogTitle className="flex items-center gap-2 font-display">
               <CheckCircle2 className="h-5 w-5 text-success" />
               Confirm Release
             </AlertDialogTitle>
@@ -161,7 +203,7 @@ export default function ContractDetail() {
       <AlertDialog open={disputeOpen} onOpenChange={setDisputeOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
+            <AlertDialogTitle className="flex items-center gap-2 font-display">
               <AlertTriangle className="h-5 w-5 text-destructive" />
               Raise Dispute
             </AlertDialogTitle>
