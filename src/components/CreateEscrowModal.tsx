@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Link as LinkIcon, Copy, Check } from "lucide-react";
+import { CalendarIcon, Loader2, Link as LinkIcon, Copy, Check, ChevronDown, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,17 +18,32 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { Currency } from "@/data/contracts";
 
 interface CreateEscrowModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+const currencies: { value: Currency; label: string; sub: string }[] = [
+  { value: "AUSD", label: "AUSD", sub: "Yield-Bearing" },
+  { value: "AVAX", label: "AVAX", sub: "Native" },
+  { value: "USDC", label: "USDC", sub: "Stablecoin" },
+];
+
 export function CreateEscrowModal({ open, onOpenChange }: CreateEscrowModalProps) {
   const [step, setStep] = useState<"form" | "loading" | "success">("form");
   const [date, setDate] = useState<Date>();
   const [copied, setCopied] = useState(false);
-  const mockLink = "https://trustvault.app/escrow/ESC-0xF3A...7B";
+  const [currency, setCurrency] = useState<Currency>("AUSD");
+  const mockLink = "https://artguard.avax/escrow/ESC-0xF3A...7B";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +63,7 @@ export function CreateEscrowModal({ open, onOpenChange }: CreateEscrowModalProps
         setStep("form");
         setDate(undefined);
         setCopied(false);
+        setCurrency("AUSD");
       }, 200);
     }
     onOpenChange(val);
@@ -57,23 +73,16 @@ export function CreateEscrowModal({ open, onOpenChange }: CreateEscrowModalProps
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {step === "success" ? "Escrow Created!" : "Create New Escrow"}
+          <DialogTitle className="font-display text-xl">
+            {step === "success" ? "Escrow Created!" : "Create New Escrow Contract"}
           </DialogTitle>
         </DialogHeader>
 
         {step === "form" && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="project">Project Name</Label>
-              <Input id="project" placeholder="e.g. Website Redesign" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount (USDC)</Label>
-              <div className="relative">
-                <Input id="amount" type="number" placeholder="0.00" min="1" step="0.01" required className="pr-16" />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">USDC</span>
-              </div>
+              <Label htmlFor="project">Title</Label>
+              <Input id="project" placeholder="e.g. Album Cover Art" required />
             </div>
             <div className="space-y-2">
               <Label>Deadline</Label>
@@ -103,10 +112,41 @@ export function CreateEscrowModal({ open, onOpenChange }: CreateEscrowModalProps
               </Popover>
             </div>
             <div className="space-y-2">
+              <Label>Currency</Label>
+              <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      <span className="flex items-center gap-2">
+                        <span className="font-semibold">{c.label}</span>
+                        <span className="text-xs text-muted-foreground">({c.sub})</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {currency === "AUSD" && (
+                <p className="flex items-center gap-1.5 text-xs text-primary">
+                  <Coins className="h-3 w-3" />
+                  AUSD funds earn yield while locked in escrow.
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount</Label>
+              <div className="relative">
+                <Input id="amount" type="number" placeholder="100" min="0.01" step="0.01" required className="pr-16" />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">{currency}</span>
+              </div>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="desc">Description</Label>
               <Textarea id="desc" placeholder="Describe the scope of work..." rows={3} required />
             </div>
-            <Button type="submit" className="w-full gap-2">
+            <Button type="submit" className="w-full gap-2 glow-primary">
               Lock Funds & Generate Link
             </Button>
           </form>
@@ -115,7 +155,7 @@ export function CreateEscrowModal({ open, onOpenChange }: CreateEscrowModalProps
         {step === "loading" && (
           <div className="flex flex-col items-center gap-4 py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Locking funds on-chain...</p>
+            <p className="text-sm text-muted-foreground">Locking funds on Avalanche...</p>
           </div>
         )}
 
@@ -128,7 +168,7 @@ export function CreateEscrowModal({ open, onOpenChange }: CreateEscrowModalProps
                 {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground">Share this link with your counterparty to begin the escrow.</p>
+            <p className="text-sm text-muted-foreground">Share this link with the artist to begin the escrow.</p>
             <Button variant="secondary" className="w-full" onClick={() => handleClose(false)}>
               Done
             </Button>

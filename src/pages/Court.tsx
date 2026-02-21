@@ -1,14 +1,154 @@
+import { useState, useEffect, useCallback } from "react";
 import { Navbar } from "@/components/Navbar";
-import { Gavel } from "lucide-react";
+import { Gavel, ArrowRight, Timer, User, FileImage } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { mockDisputes, type Dispute } from "@/data/contracts";
+
+function DisputeCard({ dispute, onSelect }: { dispute: Dispute; onSelect: () => void }) {
+  return (
+    <button
+      onClick={onSelect}
+      className="group w-full flex items-center justify-between rounded-lg border border-border bg-card p-4 text-left transition-colors hover:border-primary/30 hover:bg-secondary/50"
+    >
+      <div className="flex flex-col gap-1">
+        <span className="font-display text-sm font-semibold">{dispute.title}</span>
+        <span className="font-mono text-xs text-muted-foreground">Dispute #{dispute.id}</span>
+      </div>
+      <div className="flex items-center gap-4">
+        <span className="rounded-md bg-primary/15 px-2.5 py-1 font-mono text-xs font-semibold text-primary">
+          Reward: {dispute.reward} {dispute.rewardCurrency}
+        </span>
+        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+      </div>
+    </button>
+  );
+}
+
+function JudgeBench({ dispute, onBack }: { dispute: Dispute; onBack: () => void }) {
+  const [countdown, setCountdown] = useState(5);
+  const [canVote, setCanVote] = useState(false);
+
+  useEffect(() => {
+    setCountdown(5);
+    setCanVote(false);
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setCanVote(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [dispute.id]);
+
+  return (
+    <div className="space-y-6 animate-slide-up">
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          ← Back to disputes
+        </button>
+        <span className="font-mono text-xs text-muted-foreground">
+          {dispute.amount} {dispute.currency} at stake
+        </span>
+      </div>
+
+      <h2 className="font-display text-xl font-bold">{dispute.title}</h2>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Buyer's Complaint */}
+        <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-primary" />
+            <h3 className="font-display font-semibold text-sm">Buyer's Complaint</h3>
+            <span className="ml-auto font-mono text-xs text-muted-foreground">{dispute.buyer}</span>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">{dispute.buyerComplaint}</p>
+        </div>
+
+        {/* Seller's Evidence */}
+        <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <FileImage className="h-4 w-4 text-primary" />
+            <h3 className="font-display font-semibold text-sm">Seller's Evidence</h3>
+            <span className="ml-auto font-mono text-xs text-muted-foreground">{dispute.seller}</span>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">{dispute.sellerEvidence}</p>
+          <div className="flex gap-2">
+            {["layers.psd", "brand_guide.pdf", "colors.png"].map((f) => (
+              <span key={f} className="rounded bg-secondary px-2 py-1 text-xs font-mono text-muted-foreground">{f}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Anti-spam voting */}
+      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display font-semibold">Cast Your Vote</h3>
+          {!canVote && (
+            <div className="flex items-center gap-2 text-warning">
+              <Timer className="h-4 w-4" />
+              <span className="font-mono text-sm font-semibold">{countdown}s</span>
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Anti-spam: Review the evidence carefully. Voting is enabled after a {5}-second review period.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Button
+            size="lg"
+            variant="secondary"
+            className={`gap-2 transition-all ${canVote ? "bg-primary text-primary-foreground hover:bg-primary/90 glow-primary" : "opacity-50 cursor-not-allowed"}`}
+            disabled={!canVote}
+          >
+            Refund Buyer
+          </Button>
+          <Button
+            size="lg"
+            variant="secondary"
+            className={`gap-2 transition-all ${canVote ? "bg-success text-success-foreground hover:bg-success/90 glow-success" : "opacity-50 cursor-not-allowed"}`}
+            disabled={!canVote}
+          >
+            Pay Seller
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Court() {
+  const [selected, setSelected] = useState<Dispute | null>(null);
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background cyber-grid">
       <Navbar />
-      <main className="container flex flex-col items-center justify-center py-24">
-        <Gavel className="h-12 w-12 text-muted-foreground mb-4" />
-        <h1 className="text-2xl font-semibold">Court</h1>
-        <p className="mt-2 text-muted-foreground">Dispute resolution is coming soon.</p>
+      <main className="container max-w-4xl py-8">
+        {!selected ? (
+          <>
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-2">
+                <Gavel className="h-6 w-6 text-primary" />
+                <h1 className="font-display text-3xl font-bold">Jury Court</h1>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Open disputes awaiting juror votes. Rewards are paid in native AVAX.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {mockDisputes.map((d) => (
+                <DisputeCard key={d.id} dispute={d} onSelect={() => setSelected(d)} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <JudgeBench dispute={selected} onBack={() => setSelected(null)} />
+        )}
       </main>
     </div>
   );
