@@ -17,9 +17,10 @@ const roleNavItems: Record<string, { label: string; path: string }[]> = {
 };
 
 export function Navbar({ role }: NavbarProps) {
-  const [walletConnected, setWalletConnected] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  // Always show as connected when on a dashboard page (user connected on landing)
+  const walletConnected = !!role;
 
   const navItems = role ? roleNavItems[role] ?? [] : [];
 
@@ -54,17 +55,12 @@ export function Navbar({ role }: NavbarProps) {
 
         <div className="flex items-center gap-3">
           <Button
-            variant={walletConnected ? "secondary" : "default"}
+            variant="secondary"
             size="sm"
-            onClick={() => setWalletConnected(!walletConnected)}
             className="gap-2"
           >
             <Wallet className="h-4 w-4" />
-            {walletConnected ? (
-              <span className="font-mono text-xs">0x7F...3B</span>
-            ) : (
-              "Connect Wallet"
-            )}
+            <span className="font-mono text-xs">0x7F...3B</span>
           </Button>
           {navItems.length > 0 && (
             <button

@@ -91,29 +91,31 @@ function CourtShowcase() {
           </div>
           <p className="text-xs text-muted-foreground mb-4">Live dispute cases</p>
         </div>
-        <div
-          className="px-6 space-y-3"
-          style={{ transform: `translateY(-${scrollY}px)` }}
-        >
-          {cases.map((d, i) => (
-            <div
-              key={`${d.id}-${i}`}
-              className="rounded-xl border border-border bg-secondary/40 p-4 space-y-2"
-            >
-              <h3 className="font-display font-bold text-sm leading-tight">{d.title}</h3>
-              <p className="text-xs text-muted-foreground line-clamp-2">{d.aiSummary}</p>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="font-mono text-muted-foreground">#{d.id}</span>
-                <span className={`font-medium ${
-                  d.requiredLevel === "senior" ? "text-primary" : 
-                  d.requiredLevel === "mid" ? "text-warning" : "text-muted-foreground"
-                }`}>
-                  Requires {d.requiredLevel.charAt(0).toUpperCase() + d.requiredLevel.slice(1)} Juror
-                </span>
-                <span className="text-muted-foreground">• {d.votes.length}/{d.totalJurors} voted</span>
+        <div className="relative overflow-hidden" style={{ height: "calc(100% - 80px)" }}>
+          <div
+            className="px-6 space-y-3 absolute inset-x-0"
+            style={{ transform: `translateY(-${scrollY}px)` }}
+          >
+            {cases.map((d, i) => (
+              <div
+                key={`${d.id}-${i}`}
+                className="rounded-xl border border-border bg-secondary/40 p-4 space-y-2"
+              >
+                <h3 className="font-display font-bold text-sm leading-tight">{d.title}</h3>
+                <p className="text-xs text-muted-foreground line-clamp-2">{d.aiSummary}</p>
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="font-mono text-muted-foreground">#{d.id}</span>
+                  <span className={`font-medium ${
+                    d.requiredLevel === "senior" ? "text-primary" : 
+                    d.requiredLevel === "mid" ? "text-warning" : "text-muted-foreground"
+                  }`}>
+                    Requires {d.requiredLevel.charAt(0).toUpperCase() + d.requiredLevel.slice(1)} Juror
+                  </span>
+                  <span className="text-muted-foreground">• {d.votes.length}/{d.totalJurors} voted</span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
@@ -188,7 +190,7 @@ export default function Landing() {
     <div className="min-h-screen bg-background cyber-grid">
       {/* Minimal navbar */}
       <nav className="sticky top-0 z-50 border-b border-border bg-card/90 backdrop-blur-xl">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container flex h-16 items-center justify-center">
           <div className="flex items-center gap-2">
             <Shield className="h-6 w-6 text-primary" />
             <span className="font-display text-xl font-bold tracking-tight">
@@ -261,7 +263,7 @@ export default function Landing() {
           </DialogHeader>
           <Button onClick={handleWalletConnect} disabled={connecting} className="w-full gap-2 glow-primary">
             {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
-            {connecting ? "Connecting..." : "Connect MetaMask"}
+            {connecting ? "Connecting..." : "Connect Wallet"}
           </Button>
         </DialogContent>
       </Dialog>

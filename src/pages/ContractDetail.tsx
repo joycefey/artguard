@@ -1,6 +1,6 @@
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { Lock, Calendar, FileText, CheckCircle2, AlertTriangle, Wallet, Upload, ShieldAlert, ImagePlus, X, Film } from "lucide-react";
+import { Lock, Calendar, FileText, CheckCircle2, AlertTriangle, Wallet, Upload, ShieldAlert, ImagePlus, X, Film, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -185,7 +185,9 @@ function ArtistEvidenceModal({ open, onOpenChange }: { open: boolean; onOpenChan
 export default function ContractDetail() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const role = (searchParams.get("role") as "buyer" | "artist") || "buyer";
+  const navRole = role === "buyer" ? "commissioner" as const : "artist" as const;
   const contract = mockContracts.find((c) => c.id === id) ?? mockContracts[0];
   const [releaseOpen, setReleaseOpen] = useState(false);
   const [disputeOpen, setDisputeOpen] = useState(false);
@@ -203,28 +205,19 @@ export default function ContractDetail() {
 
   return (
     <div className="min-h-screen bg-background cyber-grid">
-      <Navbar />
+      <Navbar role={navRole} />
       <main className="container max-w-5xl py-8">
-        {/* Role switcher for demo */}
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="font-display text-2xl font-bold">
-            {role === "buyer" ? "Contract Detail (Commissioner View)" : "Contract Detail (Artist View)"}
-          </h1>
-          <div className="flex gap-1 rounded-lg bg-secondary p-1">
-            <a
-              href={`/contract/${contract.id}?role=buyer`}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${role === "buyer" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
-            >
-              Commissioner
-            </a>
-            <a
-              href={`/contract/${contract.id}?role=artist`}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${role === "artist" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
-            >
-              Artist
-            </a>
-          </div>
-        </div>
+        {/* Back button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+
+        <h1 className="font-display text-2xl font-bold mb-4">
+          Contract Detail
+        </h1>
 
         <div className="mb-8 flex justify-center">
           <ProgressStepper currentStep={stepIndex} />
