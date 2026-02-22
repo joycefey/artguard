@@ -176,12 +176,10 @@ export default function Landing() {
   };
 
   const handleJurorVerify = () => {
-    if (!jurorAddress.trim()) return;
     setJurorVerifying(true);
     setTimeout(() => {
       setJurorVerifying(false);
       setJurorDialog(false);
-      setJurorAddress("");
       navigate("/court");
     }, 2000);
   };
@@ -280,22 +278,14 @@ export default function Landing() {
               Please enter your wallet address so we can verify your credentials before granting access to the arbitration hall.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              value={jurorAddress}
-              onChange={(e) => setJurorAddress(e.target.value)}
-              placeholder="0x..."
-              className="font-mono"
-            />
-            <Button
-              onClick={handleJurorVerify}
-              disabled={!jurorAddress.trim() || jurorVerifying}
-              className="w-full gap-2 glow-primary"
-            >
-              {jurorVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
-              {jurorVerifying ? "Verifying Badge..." : "Verify & Enter Court"}
-            </Button>
-          </div>
+          <Button
+            onClick={handleJurorVerify}
+            disabled={jurorVerifying}
+            className="w-full gap-2 glow-primary"
+          >
+            {jurorVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+            {jurorVerifying ? "Verifying Badge..." : "Connect Wallet & Verify"}
+          </Button>
         </DialogContent>
       </Dialog>
     </div>
