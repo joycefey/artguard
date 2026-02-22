@@ -3,17 +3,25 @@ import { Wallet, Shield, Menu, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
-  { label: "Commissioner", path: "/commissioner" },
-  { label: "Artist", path: "/artist" },
-  { label: "Court", path: "/court" },
-  { label: "Profile", path: "/profile" },
-];
+interface NavbarProps {
+  role?: "commissioner" | "artist" | "juror";
+}
 
-export function Navbar() {
+const roleNavItems: Record<string, { label: string; path: string }[]> = {
+  commissioner: [],
+  artist: [],
+  juror: [
+    { label: "Court", path: "/court" },
+    { label: "Profile", path: "/profile" },
+  ],
+};
+
+export function Navbar({ role }: NavbarProps) {
   const [walletConnected, setWalletConnected] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+
+  const navItems = role ? roleNavItems[role] ?? [] : [];
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-card/90 backdrop-blur-xl">
@@ -25,21 +33,23 @@ export function Navbar() {
               Art<span className="text-primary">Guard</span>
             </span>
           </Link>
-          <div className="hidden items-center gap-1 md:flex">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                  location.pathname === item.path
-                    ? "bg-primary/15 text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
+          {navItems.length > 0 && (
+            <div className="hidden items-center gap-1 md:flex">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    location.pathname === item.path
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -56,16 +66,18 @@ export function Navbar() {
               "Connect Wallet"
             )}
           </Button>
-          <button
-            className="md:hidden text-muted-foreground"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          {navItems.length > 0 && (
+            <button
+              className="md:hidden text-muted-foreground"
+              onClick={() => setMobileOpen(!mobileOpen)}
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          )}
         </div>
       </div>
 
-      {mobileOpen && (
+      {mobileOpen && navItems.length > 0 && (
         <div className="border-t border-border p-4 md:hidden">
           {navItems.map((item) => (
             <Link
