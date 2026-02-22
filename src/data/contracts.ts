@@ -5,16 +5,15 @@ export type JudgeLevel = "junior" | "mid" | "senior";
 export interface JudgeLevelInfo {
   level: JudgeLevel;
   label: string;
-  labelCN: string;
   minScore: number;
-  maxAmount: number | null; // null = unlimited
+  maxAmount: number | null;
   color: string;
 }
 
 export const judgeLevels: JudgeLevelInfo[] = [
-  { level: "junior", label: "Junior", labelCN: "初级", minScore: 0, maxAmount: 1000, color: "text-muted-foreground" },
-  { level: "mid", label: "Mid", labelCN: "中级", minScore: 200, maxAmount: 5000, color: "text-warning" },
-  { level: "senior", label: "Senior", labelCN: "高级", minScore: 500, maxAmount: null, color: "text-primary" },
+  { level: "junior", label: "Junior", minScore: 0, maxAmount: 1000, color: "text-muted-foreground" },
+  { level: "mid", label: "Mid", minScore: 200, maxAmount: 5000, color: "text-warning" },
+  { level: "senior", label: "Senior", minScore: 500, maxAmount: null, color: "text-primary" },
 ];
 
 export function getJudgeLevel(score: number): JudgeLevelInfo {
@@ -33,6 +32,7 @@ export interface EscrowContract {
   description: string;
   deadline: string;
   createdAt: string;
+  referenceImages?: string[];
 }
 
 export const mockContracts: EscrowContract[] = [
@@ -46,6 +46,7 @@ export const mockContracts: EscrowContract[] = [
     description: "Custom album cover illustration with 3D elements and typography.",
     deadline: "2026-03-15",
     createdAt: "2026-02-10",
+    referenceImages: ["ref_mood.jpg", "ref_style.png"],
   },
   {
     id: "ESC-0x7B3",
@@ -95,10 +96,13 @@ export interface Dispute {
   amount: number;
   currency: Currency;
   status: "Open" | "Resolved";
-  difficulty: number; // 1-5, affects judge score
+  difficulty: number;
   requiredLevel: JudgeLevel;
   buyerImages: string[];
   sellerFiles: string[];
+  aiSummary: string;
+  votes: { jurorId: string; vote: "commissioner" | "artist" }[];
+  totalJurors: number;
 }
 
 export const mockDisputes: Dispute[] = [
@@ -119,6 +123,12 @@ export const mockDisputes: Dispute[] = [
     requiredLevel: "mid",
     buyerImages: ["screenshot_1.png", "moodboard.jpg", "chat_log.png"],
     sellerFiles: ["layers.psd", "brand_guide.pdf", "colors.png"],
+    aiSummary: "Commissioner claims deliverables don't match scope (logo style, colors, incomplete guidelines). Artist states work was on time with approved palette and full source files.",
+    votes: [
+      { jurorId: "0xJ1...A1", vote: "commissioner" },
+      { jurorId: "0xJ2...B2", vote: "artist" },
+    ],
+    totalJurors: 5,
   },
   {
     id: "DSP-891",
@@ -137,6 +147,9 @@ export const mockDisputes: Dispute[] = [
     requiredLevel: "junior",
     buyerImages: ["contract_scope.png", "delivery_date.png"],
     sellerFiles: ["model_v1.obj", "timeline_chat.pdf"],
+    aiSummary: "Dispute over missed deadline and unrigged model. Artist claims mid-project scope change (rigging added). Commissioner says original scope included rigging.",
+    votes: [],
+    totalJurors: 5,
   },
   {
     id: "DSP-903",
@@ -155,10 +168,16 @@ export const mockDisputes: Dispute[] = [
     requiredLevel: "senior",
     buyerImages: ["original_brand.png", "my_delivery.png", "reverse_search.png", "comparison.png"],
     sellerFiles: ["process.ai", "sketches.pdf", "layers.psd"],
+    aiSummary: "Plagiarism allegation — Commissioner found near-identical existing brand via reverse search. Artist claims coincidental similarity with geometric shapes, offers process files.",
+    votes: [
+      { jurorId: "0xJ5...E5", vote: "commissioner" },
+      { jurorId: "0xJ6...F6", vote: "commissioner" },
+      { jurorId: "0xJ7...G7", vote: "artist" },
+    ],
+    totalJurors: 5,
   },
 ];
 
-// Mock judge profile
 export interface JudgeProfile {
   address: string;
   score: number;

@@ -2,22 +2,23 @@ import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { 
   Shield, Award, TrendingUp, Coins, User, Palette, Gavel, 
-  ShoppingBag, FileText, Upload, Clock, CheckCircle2, XCircle 
+  ShoppingBag, FileText, Upload, Clock, CheckCircle2, XCircle, Link as LinkIcon, Search, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { mockContracts, mockJudgeProfile, getJudgeLevel, judgeLevels } from "@/data/contracts";
 
-type Role = "commissioner" | "artist" | "arbitrator";
+type Role = "commissioner" | "artist" | "juror";
 
-const roleCards: { role: Role; label: string; labelEN: string; icon: typeof User; description: string }[] = [
-  { role: "commissioner", label: "约画", labelEN: "Commissioner", icon: ShoppingBag, description: "发布需求，管理合同，释放资金" },
-  { role: "artist", label: "画家", labelEN: "Artist", icon: Palette, description: "接受委托，上传作品，查看收入" },
-  { role: "arbitrator", label: "仲裁", labelEN: "Arbitrator", icon: Gavel, description: "审判争议案件，赚取AVAX奖励" },
+const roleCards: { role: Role; label: string; icon: typeof User; description: string }[] = [
+  { role: "commissioner", label: "Commissioner", icon: ShoppingBag, description: "Post commissions, manage contracts, release funds" },
+  { role: "artist", label: "Artist", icon: Palette, description: "Accept commissions, upload deliverables, track income" },
+  { role: "juror", label: "Juror", icon: Gavel, description: "Resolve disputes, earn AVAX rewards" },
 ];
 
 const badges = [
   { name: "Verified Human", description: "Identity verified via Proof-of-Personhood", icon: Shield },
-  { name: "Genesis Judge", description: "Early adopter juror — Season 1", icon: Award },
+  { name: "Genesis Juror", description: "Early adopter juror — Season 1", icon: Award },
 ];
 
 const judgeApplications = [
@@ -35,6 +36,75 @@ const judgeApplications = [
   },
 ];
 
+function ContractLinkParser() {
+  const [link, setLink] = useState("");
+  const [parsing, setParsing] = useState(false);
+  const [parsed, setParsed] = useState<typeof mockContracts[0] | null>(null);
+
+  const handleParse = () => {
+    if (!link.trim()) return;
+    setParsing(true);
+    setTimeout(() => {
+      setParsed(mockContracts[0]);
+      setParsing(false);
+    }, 1500);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={link}
+            onChange={(e) => { setLink(e.target.value); setParsed(null); }}
+            placeholder="Paste contract link here..."
+            className="pl-9"
+          />
+        </div>
+        <Button onClick={handleParse} disabled={!link.trim() || parsing} className="gap-2">
+          {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          Parse
+        </Button>
+      </div>
+
+      {parsed && (
+        <div className="rounded-xl border border-primary/20 bg-card p-5 space-y-4 animate-slide-up">
+          <h3 className="font-display text-lg font-semibold">{parsed.projectName}</h3>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg bg-secondary/50 p-3">
+              <p className="text-xs text-muted-foreground">Locked Amount</p>
+              <p className="font-mono text-lg font-bold">{parsed.amount} <span className="text-sm text-muted-foreground">{parsed.currency}</span></p>
+            </div>
+            <div className="rounded-lg bg-secondary/50 p-3">
+              <p className="text-xs text-muted-foreground">Currency</p>
+              <p className="font-mono text-lg font-bold">{parsed.currency}</p>
+            </div>
+            <div className="rounded-lg bg-secondary/50 p-3">
+              <p className="text-xs text-muted-foreground">Deadline</p>
+              <p className="font-mono text-lg font-bold">{parsed.deadline}</p>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">{parsed.description}</p>
+          {parsed.referenceImages && parsed.referenceImages.length > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-2">Reference Images:</p>
+              <div className="flex gap-2">
+                {parsed.referenceImages.map((img) => (
+                  <span key={img} className="rounded bg-secondary px-2 py-1 text-xs font-mono text-muted-foreground">{img}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          <Button className="w-full gap-2 glow-primary" size="lg">
+            <CheckCircle2 className="h-5 w-5" /> Accept Commission
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Profile() {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const judge = mockJudgeProfile;
@@ -51,7 +121,7 @@ export default function Profile() {
             </div>
             <div>
               <h1 className="font-display text-2xl font-bold">0x7F...3B</h1>
-              <p className="text-sm text-muted-foreground">选择你的角色面板</p>
+              <p className="text-sm text-muted-foreground">Select your role</p>
             </div>
           </div>
 
@@ -66,7 +136,6 @@ export default function Profile() {
                   <r.icon className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="font-display text-lg font-bold">{r.label}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{r.labelEN}</p>
                 <p className="text-sm text-muted-foreground mt-2">{r.description}</p>
               </button>
             ))}
@@ -82,7 +151,7 @@ export default function Profile() {
       <main className="container max-w-4xl py-8">
         <div className="mb-6 flex items-center justify-between">
           <button onClick={() => setSelectedRole(null)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            ← 返回角色选择
+            ← Back to role select
           </button>
           <div className="flex gap-1 rounded-lg bg-secondary p-1">
             {roleCards.map((r) => (
@@ -103,24 +172,24 @@ export default function Profile() {
         {selectedRole === "commissioner" && (
           <div className="space-y-6 animate-slide-up">
             <h2 className="font-display text-xl font-bold flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5 text-primary" /> 约画面板
+              <ShoppingBag className="h-5 w-5 text-primary" /> Commissioner Dashboard
             </h2>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="flex items-center gap-2 text-muted-foreground"><FileText className="h-4 w-4" /><span className="text-xs">活跃合同</span></div>
+                <div className="flex items-center gap-2 text-muted-foreground"><FileText className="h-4 w-4" /><span className="text-xs">Active Contracts</span></div>
                 <p className="font-mono text-2xl font-bold">{mockContracts.filter(c => c.status !== "Disputed").length}</p>
               </div>
               <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="flex items-center gap-2 text-muted-foreground"><TrendingUp className="h-4 w-4" /><span className="text-xs">总锁定金额</span></div>
+                <div className="flex items-center gap-2 text-muted-foreground"><TrendingUp className="h-4 w-4" /><span className="text-xs">Total Locked</span></div>
                 <p className="font-mono text-2xl font-bold">$1,555</p>
               </div>
               <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="flex items-center gap-2 text-muted-foreground"><Clock className="h-4 w-4" /><span className="text-xs">争议中</span></div>
+                <div className="flex items-center gap-2 text-muted-foreground"><Clock className="h-4 w-4" /><span className="text-xs">In Dispute</span></div>
                 <p className="font-mono text-2xl font-bold text-destructive">{mockContracts.filter(c => c.status === "Disputed").length}</p>
               </div>
             </div>
             <div className="space-y-2">
-              <h3 className="font-display font-semibold text-sm text-muted-foreground">我发布的合同</h3>
+              <h3 className="font-display font-semibold text-sm text-muted-foreground">My Contracts</h3>
               {mockContracts.map(c => (
                 <div key={c.id} className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
                   <div>
@@ -138,41 +207,51 @@ export default function Profile() {
         {selectedRole === "artist" && (
           <div className="space-y-6 animate-slide-up">
             <h2 className="font-display text-xl font-bold flex items-center gap-2">
-              <Palette className="h-5 w-5 text-primary" /> 画家面板
+              <Palette className="h-5 w-5 text-primary" /> Artist Workspace
             </h2>
+
+            {/* Contract Link Parser */}
+            <div className="rounded-xl border border-primary/20 bg-card p-5 space-y-3">
+              <h3 className="font-display font-semibold text-sm flex items-center gap-2">
+                <LinkIcon className="h-4 w-4 text-primary" /> Accept New Commission
+              </h3>
+              <p className="text-xs text-muted-foreground">Paste the contract link sent by the Commissioner to view and accept the commission.</p>
+              <ContractLinkParser />
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="flex items-center gap-2 text-muted-foreground"><Upload className="h-4 w-4" /><span className="text-xs">进行中</span></div>
+                <div className="flex items-center gap-2 text-muted-foreground"><Upload className="h-4 w-4" /><span className="text-xs">In Progress</span></div>
                 <p className="font-mono text-2xl font-bold">2</p>
               </div>
               <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="flex items-center gap-2 text-muted-foreground"><CheckCircle2 className="h-4 w-4" /><span className="text-xs">已完成</span></div>
+                <div className="flex items-center gap-2 text-muted-foreground"><CheckCircle2 className="h-4 w-4" /><span className="text-xs">Completed</span></div>
                 <p className="font-mono text-2xl font-bold">8</p>
               </div>
               <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="flex items-center gap-2 text-muted-foreground"><Coins className="h-4 w-4" /><span className="text-xs">总收入</span></div>
+                <div className="flex items-center gap-2 text-muted-foreground"><Coins className="h-4 w-4" /><span className="text-xs">Total Earned</span></div>
                 <p className="font-mono text-2xl font-bold">$4,200</p>
               </div>
             </div>
             <div className="rounded-xl border border-border bg-card p-5">
-              <p className="text-sm text-muted-foreground">接受的委托将显示在这里。通过合同链接接受工作后即可开始上传作品。</p>
+              <p className="text-sm text-muted-foreground">Accepted commissions will appear here. Accept a contract via the link parser above to start working.</p>
             </div>
           </div>
         )}
 
-        {/* Arbitrator Panel */}
-        {selectedRole === "arbitrator" && (
+        {/* Juror Panel */}
+        {selectedRole === "juror" && (
           <div className="space-y-6 animate-slide-up">
             <h2 className="font-display text-xl font-bold flex items-center gap-2">
-              <Gavel className="h-5 w-5 text-primary" /> 仲裁面板
+              <Gavel className="h-5 w-5 text-primary" /> Juror Dashboard
             </h2>
             
             {/* Judge Level */}
             <div className="rounded-xl border border-primary/20 bg-card p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="font-display font-semibold">审判员等级</h3>
+                <h3 className="font-display font-semibold">Juror Level</h3>
                 <span className={`font-display font-bold text-lg ${judgeLevel.color}`}>
-                  {judgeLevel.labelCN} ({judgeLevel.label})
+                  {judgeLevel.label}
                 </span>
               </div>
               <div className="w-full rounded-full bg-secondary h-2">
@@ -182,15 +261,15 @@ export default function Profile() {
                 />
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>积分: {judge.score}</span>
-                <span>准确率: {(judge.accuracy * 100).toFixed(0)}%</span>
+                <span>Score: {judge.score}</span>
+                <span>Accuracy: {(judge.accuracy * 100).toFixed(0)}%</span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
                 {judgeLevels.map(l => (
                   <div key={l.level} className={`rounded-lg p-2 border ${l.level === judgeLevel.level ? 'border-primary/40 bg-primary/10' : 'border-border'}`}>
-                    <p className={`font-display font-bold text-sm ${l.color}`}>{l.labelCN}</p>
-                    <p className="text-xs text-muted-foreground">{l.minScore}+ 分</p>
-                    <p className="text-xs text-muted-foreground">≤{l.maxAmount ? `$${l.maxAmount}` : '无限'}</p>
+                    <p className={`font-display font-bold text-sm ${l.color}`}>{l.label}</p>
+                    <p className="text-xs text-muted-foreground">{l.minScore}+ pts</p>
+                    <p className="text-xs text-muted-foreground">≤{l.maxAmount ? `$${l.maxAmount}` : '∞'}</p>
                   </div>
                 ))}
               </div>
@@ -199,15 +278,15 @@ export default function Profile() {
             {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="flex items-center gap-2 text-muted-foreground"><TrendingUp className="h-4 w-4" /><span className="text-xs">总案件</span></div>
+                <div className="flex items-center gap-2 text-muted-foreground"><TrendingUp className="h-4 w-4" /><span className="text-xs">Total Cases</span></div>
                 <p className="font-mono text-2xl font-bold">{judge.totalCases}</p>
               </div>
               <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="flex items-center gap-2 text-muted-foreground"><Award className="h-4 w-4" /><span className="text-xs">判对</span></div>
+                <div className="flex items-center gap-2 text-muted-foreground"><Award className="h-4 w-4" /><span className="text-xs">Correct</span></div>
                 <p className="font-mono text-2xl font-bold">{judge.correctCases}<span className="text-sm text-muted-foreground">/{judge.totalCases}</span></p>
               </div>
               <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="flex items-center gap-2 text-muted-foreground"><Coins className="h-4 w-4" /><span className="text-xs">总收益</span></div>
+                <div className="flex items-center gap-2 text-muted-foreground"><Coins className="h-4 w-4" /><span className="text-xs">Total Earned</span></div>
                 <p className="font-mono text-2xl font-bold">{judge.totalEarned} <span className="text-sm text-muted-foreground">AVAX</span></p>
               </div>
             </div>
@@ -232,11 +311,11 @@ export default function Profile() {
 
             {/* Governance */}
             <div>
-              <h3 className="font-display text-lg font-semibold mb-1">新审判员申请</h3>
-              <p className="text-sm text-muted-foreground mb-4">作为中级以上审判员，你可以审核新审判员申请。</p>
+              <h3 className="font-display text-lg font-semibold mb-1">New Juror Applications</h3>
+              <p className="text-sm text-muted-foreground mb-4">As a Mid+ Juror, you can review new applicants.</p>
               {judgeLevel.level === "junior" ? (
                 <div className="rounded-xl border border-border bg-card p-5 text-center">
-                  <p className="text-sm text-muted-foreground">需要中级以上等级才能审核申请</p>
+                  <p className="text-sm text-muted-foreground">Mid level or above required to review applications</p>
                 </div>
               ) : (
                 judgeApplications.map((app) => (
