@@ -4,7 +4,8 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { label: "Dashboard", path: "/" },
+  { label: "Commissioner", path: "/commissioner" },
+  { label: "Artist", path: "/artist" },
   { label: "Court", path: "/court" },
   { label: "Profile", path: "/profile" },
 ];
