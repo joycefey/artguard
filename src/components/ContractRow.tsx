@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 export function ContractRow({ contract }: { contract: EscrowContract }) {
   return (
     <Link
-      to={`/contract/${contract.id}`}
+      to={`/contract/${contract.id}?role=buyer`}
       className="group flex items-center justify-between rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-secondary/50"
     >
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-6">
