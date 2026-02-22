@@ -11,7 +11,7 @@ export default function CommissionerDashboard() {
 
   return (
     <div className="min-h-screen bg-background cyber-grid">
-      <Navbar />
+      <Navbar role="commissioner" />
       <main className="container max-w-4xl py-8">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">

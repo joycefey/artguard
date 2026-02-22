@@ -280,7 +280,7 @@ export default function Court() {
 
   return (
     <div className="min-h-screen bg-background cyber-grid">
-      <Navbar />
+      <Navbar role="juror" />
       <main className="container max-w-4xl py-8">
         {!selected ? (
           <>

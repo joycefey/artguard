@@ -33,7 +33,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-background cyber-grid">
-      <Navbar />
+      <Navbar role="juror" />
       <main className="container max-w-4xl py-8">
         <div className="mb-8 flex items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 border border-primary/30">

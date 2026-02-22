@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Shield, ShoppingBag, Palette, Gavel, Wallet, Lock, Scale, ArrowRight, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import { mockDisputes } from "@/data/contracts";
 
 const stats = [
   { label: "Total Escrowed", value: "$2.4M+", icon: Lock },
@@ -16,26 +17,132 @@ const stats = [
 const roles = [
   {
     key: "commissioner",
-    label: "Commissioner",
+    label: "I'm a Commissioner",
     icon: ShoppingBag,
-    description: "Create escrow contracts, lock funds on-chain, and commission artwork with full protection.",
+    description: "Commission artwork with funds locked on-chain.",
     cta: "Enter as Commissioner",
   },
   {
     key: "artist",
-    label: "Artist",
+    label: "I'm an Artist",
     icon: Palette,
-    description: "Accept commissions, verify locked funds, deliver work, and get paid — guaranteed by smart contracts.",
+    description: "Accept commissions and get paid — guaranteed.",
     cta: "Enter as Artist",
   },
   {
     key: "juror",
-    label: "Juror",
+    label: "I'm a Juror",
     icon: Gavel,
-    description: "Review disputes, cast binding votes, and earn AVAX rewards for fair arbitration.",
+    description: "Review disputes and earn rewards for fair arbitration.",
     cta: "Enter as Juror",
   },
 ] as const;
+
+/* Animated showcase: cycles between court cases and platform tagline */
+function CourtShowcase() {
+  const [phase, setPhase] = useState<"cases" | "tagline">("cases");
+  const [scrollY, setScrollY] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Animate scroll for cases, then switch to tagline
+  useEffect(() => {
+    let frame: number;
+    let start: number;
+
+    const cycle = () => {
+      // Phase 1: scroll cases for ~4s
+      setPhase("cases");
+      setScrollY(0);
+      start = Date.now();
+
+      const animate = () => {
+        const elapsed = Date.now() - start;
+        if (elapsed < 4000) {
+          setScrollY(elapsed * 0.04); // slow scroll
+          frame = requestAnimationFrame(animate);
+        } else {
+          // Phase 2: show tagline for 3s
+          setPhase("tagline");
+          intervalRef.current = setTimeout(cycle, 3000);
+        }
+      };
+      frame = requestAnimationFrame(animate);
+    };
+
+    cycle();
+    return () => {
+      cancelAnimationFrame(frame);
+      if (intervalRef.current) clearTimeout(intervalRef.current);
+    };
+  }, []);
+
+  const cases = [...mockDisputes, ...mockDisputes]; // double for seamless scroll
+
+  return (
+    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-border bg-card/80">
+      {/* Cases phase */}
+      <div
+        className={`absolute inset-0 transition-opacity duration-700 ${phase === "cases" ? "opacity-100" : "opacity-0"}`}
+      >
+        <div className="p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <Gavel className="h-5 w-5 text-primary" />
+            <h2 className="font-display text-2xl font-bold">Court</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">Live dispute cases</p>
+        </div>
+        <div
+          className="px-6 space-y-3"
+          style={{ transform: `translateY(-${scrollY}px)` }}
+        >
+          {cases.map((d, i) => (
+            <div
+              key={`${d.id}-${i}`}
+              className="rounded-xl border border-border bg-secondary/40 p-4 space-y-2"
+            >
+              <h3 className="font-display font-bold text-sm leading-tight">{d.title}</h3>
+              <p className="text-xs text-muted-foreground line-clamp-2">{d.aiSummary}</p>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="font-mono text-muted-foreground">#{d.id}</span>
+                <span className={`font-medium ${
+                  d.requiredLevel === "senior" ? "text-primary" : 
+                  d.requiredLevel === "mid" ? "text-warning" : "text-muted-foreground"
+                }`}>
+                  Requires {d.requiredLevel.charAt(0).toUpperCase() + d.requiredLevel.slice(1)} Juror
+                </span>
+                <span className="text-muted-foreground">• {d.votes.length}/{d.totalJurors} voted</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tagline phase */}
+      <div
+        className={`absolute inset-0 flex flex-col items-center justify-center p-8 text-center transition-opacity duration-700 ${phase === "tagline" ? "opacity-100" : "opacity-0"}`}
+      >
+        <Shield className="h-12 w-12 text-primary mb-4" />
+        <h2 className="font-display text-3xl font-bold mb-3">
+          Decentralized Art
+          <br />
+          <span className="text-primary">Commission Arbitration</span>
+        </h2>
+        <p className="text-sm text-muted-foreground mb-8 max-w-sm">
+          Trustless escrow on Avalanche. No middlemen, no chargebacks.
+        </p>
+        <div className="grid grid-cols-3 gap-4 w-full max-w-sm">
+          {stats.map((s) => (
+            <div key={s.label} className="space-y-1">
+              <s.icon className="h-4 w-4 text-primary mx-auto" />
+              <p className="font-mono text-lg font-bold">{s.value}</p>
+              <p className="text-[10px] text-muted-foreground">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -79,7 +186,7 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background cyber-grid">
-      {/* Navbar */}
+      {/* Minimal navbar */}
       <nav className="sticky top-0 z-50 border-b border-border bg-card/90 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
@@ -91,55 +198,57 @@ export default function Landing() {
         </div>
       </nav>
 
-      <main className="container max-w-5xl py-16">
-        {/* Hero */}
-        <div className="text-center mb-16">
-          <h1 className="font-display text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-            Trustless Escrow for <span className="text-primary">Creative Commissions</span>
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Lock funds on Avalanche, deliver artwork with confidence, and resolve disputes through decentralized arbitration. No middlemen, no chargebacks.
-          </p>
-        </div>
+      {/* Split layout */}
+      <main className="container py-8">
+        <div className="grid gap-8 lg:grid-cols-2 min-h-[calc(100vh-8rem)]">
+          {/* Left: Court showcase */}
+          <div className="hidden lg:block">
+            <CourtShowcase />
+          </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-16">
-          {stats.map((s) => (
-            <div key={s.label} className="rounded-xl border border-border bg-card p-5 text-center">
-              <s.icon className="h-5 w-5 text-primary mx-auto mb-2" />
-              <p className="font-mono text-2xl font-bold">{s.value}</p>
-              <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
+          {/* Right: Role selection */}
+          <div className="flex flex-col justify-center">
+            <h1 className="font-display text-3xl sm:text-4xl font-bold text-center mb-2">
+              Select Your Role
+            </h1>
+            <p className="text-sm text-muted-foreground text-center mb-8">
+              Connect your wallet and enter the platform
+            </p>
+
+            <div className="space-y-4 max-w-md mx-auto w-full">
+              {roles.map((role) => (
+                <button
+                  key={role.key}
+                  onClick={() => handleRoleClick(role.key)}
+                  className="group w-full flex items-center gap-4 rounded-xl border border-border bg-card/60 p-5 text-left transition-all hover:border-primary/40 hover:bg-card hover:shadow-lg hover:shadow-primary/5"
+                >
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <role.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-display text-lg font-bold">{role.label}</h3>
+                    <p className="text-xs text-muted-foreground">{role.description}</p>
+                  </div>
+                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Role Cards */}
-        <div className="mb-8">
-          <h2 className="font-display text-2xl font-bold text-center mb-2">Choose Your Role</h2>
-          <p className="text-sm text-muted-foreground text-center mb-8">Connect your wallet and enter the platform</p>
-        </div>
-
-        <div className="grid gap-6 sm:grid-cols-3">
-          {roles.map((role) => (
-            <button
-              key={role.key}
-              onClick={() => handleRoleClick(role.key)}
-              className="group relative rounded-xl border border-border bg-card p-8 text-left transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-            >
-              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                <role.icon className="h-7 w-7 text-primary" />
-              </div>
-              <h3 className="font-display text-xl font-bold mb-2">{role.label}</h3>
-              <p className="text-sm text-muted-foreground mb-6 leading-relaxed">{role.description}</p>
-              <div className="flex items-center gap-2 text-sm font-medium text-primary group-hover:gap-3 transition-all">
-                {role.cta} <ArrowRight className="h-4 w-4" />
-              </div>
-            </button>
-          ))}
+            {/* Mobile stats */}
+            <div className="grid grid-cols-3 gap-3 mt-10 lg:hidden">
+              {stats.map((s) => (
+                <div key={s.label} className="rounded-xl border border-border bg-card p-4 text-center">
+                  <s.icon className="h-4 w-4 text-primary mx-auto mb-1" />
+                  <p className="font-mono text-lg font-bold">{s.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </main>
 
-      {/* Wallet Connect Dialog (Commissioner / Artist) */}
+      {/* Wallet Connect Dialog */}
       <Dialog open={!!walletDialog} onOpenChange={(v) => { if (!v) setWalletDialog(null); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
@@ -157,7 +266,7 @@ export default function Landing() {
         </DialogContent>
       </Dialog>
 
-      {/* Juror Badge Verification Dialog */}
+      {/* Juror Verification Dialog */}
       <Dialog open={jurorDialog} onOpenChange={setJurorDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
