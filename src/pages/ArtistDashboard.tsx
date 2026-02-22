@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Palette, Upload, CheckCircle2, Coins, Link as LinkIcon, Search, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Palette, Upload, CheckCircle2, Coins, Link as LinkIcon, Search, Loader2, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Navbar } from "@/components/Navbar";
 import { StatusBadge } from "@/components/StatusBadge";
-import { mockContracts } from "@/data/contracts";
+import { mockContracts, mockDisputes } from "@/data/contracts";
 
 function ContractLinkParser() {
   const [link, setLink] = useState("");
@@ -95,6 +96,18 @@ function ContractLinkParser() {
 }
 
 export default function ArtistDashboard() {
+  // Show 3 contracts including the disputed one
+  const artistContracts = mockContracts.slice(0, 3);
+  const disputedContracts = artistContracts.filter(c => c.status === "Disputed");
+  const hasDisputes = disputedContracts.length > 0;
+
+  // Find related dispute info for deadline calculation
+  const getDisputeDeadlineDays = (contractId: string) => {
+    const dispute = mockDisputes.find(d => d.contractId === contractId);
+    if (!dispute) return 3; // default
+    return 3; // mock: 3 days remaining
+  };
+
   return (
     <div className="min-h-screen bg-background cyber-grid">
       <Navbar role="artist" />
@@ -108,6 +121,21 @@ export default function ArtistDashboard() {
             <p className="text-sm text-muted-foreground">Accept commissions and manage your work</p>
           </div>
         </div>
+
+        {/* Dispute Alert Banner */}
+        {hasDisputes && (
+          <div className="mb-6 flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 animate-pulse">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-destructive">
+                ⚠ You have {disputedContracts.length} contract{disputedContracts.length > 1 ? "s" : ""} under dispute!
+              </p>
+              <p className="text-xs text-destructive/80">
+                Please review and submit your defense evidence before the deadline.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Link Parser */}
         <div className="rounded-xl border border-primary/20 bg-card p-5 space-y-3 mb-8">
@@ -137,20 +165,41 @@ export default function ArtistDashboard() {
         {/* Accepted Contracts */}
         <h3 className="font-display font-semibold text-sm text-muted-foreground mb-3">Accepted Commissions</h3>
         <div className="space-y-2">
-          {mockContracts.slice(0, 2).map((c) => (
-            <div key={c.id} className="flex items-center justify-between rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-6">
-                <span className="font-mono text-sm font-medium">{c.id}</span>
-                <span className="text-sm text-muted-foreground">{c.projectName}</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="font-mono text-sm font-semibold">
-                  {c.amount.toLocaleString()} <span className="text-xs text-muted-foreground">{c.currency}</span>
-                </span>
-                <StatusBadge status={c.status} />
-              </div>
-            </div>
-          ))}
+          {artistContracts.map((c) => {
+            const isDisputed = c.status === "Disputed";
+            const daysLeft = isDisputed ? getDisputeDeadlineDays(c.id) : 0;
+
+            return (
+              <Link
+                key={c.id}
+                to={`/contract/${c.id}?role=artist`}
+                className={`group flex items-center justify-between rounded-lg border p-4 transition-colors ${
+                  isDisputed
+                    ? "border-destructive/40 bg-destructive/5 hover:border-destructive/60"
+                    : "border-border bg-card hover:border-primary/30"
+                }`}
+              >
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-6">
+                  <div className="flex items-center gap-2">
+                    {isDisputed && <AlertTriangle className="h-4 w-4 text-destructive" />}
+                    <span className="font-mono text-sm font-medium">{c.id}</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">{c.projectName}</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  {isDisputed && (
+                    <span className="flex items-center gap-1 text-xs text-destructive font-medium">
+                      <Clock className="h-3 w-3" /> {daysLeft}d left
+                    </span>
+                  )}
+                  <span className="font-mono text-sm font-semibold">
+                    {c.amount.toLocaleString()} <span className="text-xs text-muted-foreground">{c.currency}</span>
+                  </span>
+                  <StatusBadge status={c.status} />
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </main>
     </div>
