@@ -49,6 +49,7 @@ function DisputeCard({ dispute, onSelect, available }: { dispute: Dispute; onSel
 }
 
 function JudgeBench({ dispute, onBack }: { dispute: Dispute; onBack: () => void }) {
+  const [voted, setVoted] = useState(false);
   const [countdown, setCountdown] = useState(10);
   const [timerDone, setTimerDone] = useState(false);
   // Track which evidence items have been clicked
@@ -86,6 +87,21 @@ function JudgeBench({ dispute, onBack }: { dispute: Dispute; onBack: () => void 
   const markSeller = useCallback((idx: number) => {
     setViewedSeller(prev => new Set(prev).add(idx));
   }, []);
+
+  if (voted) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-6 py-20 animate-slide-up">
+        <CheckCircle2 className="h-16 w-16 text-success" />
+        <h2 className="font-display text-2xl font-bold">Thank You for Your Vote</h2>
+        <p className="text-sm text-muted-foreground text-center max-w-md">
+          Your vote has been recorded. The verdict will be finalized once all jurors have voted. You will be notified of the result.
+        </p>
+        <Button onClick={onBack} className="gap-2 glow-primary">
+          <ArrowRight className="h-4 w-4 rotate-180" /> Back to Court
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -236,6 +252,7 @@ function JudgeBench({ dispute, onBack }: { dispute: Dispute; onBack: () => void 
             variant="secondary"
             className={`gap-2 transition-all ${canVote ? "bg-primary text-primary-foreground hover:bg-primary/90 glow-primary" : "opacity-50 cursor-not-allowed"}`}
             disabled={!canVote}
+            onClick={() => setVoted(true)}
           >
             Refund Commissioner
           </Button>
@@ -244,6 +261,7 @@ function JudgeBench({ dispute, onBack }: { dispute: Dispute; onBack: () => void 
             variant="secondary"
             className={`gap-2 transition-all ${canVote ? "bg-success text-success-foreground hover:bg-success/90 glow-success" : "opacity-50 cursor-not-allowed"}`}
             disabled={!canVote}
+            onClick={() => setVoted(true)}
           >
             Pay Artist
           </Button>

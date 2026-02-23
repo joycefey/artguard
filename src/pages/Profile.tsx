@@ -6,6 +6,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { mockJudgeProfile, getJudgeLevel, judgeLevels } from "@/data/contracts";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const badges = [
   { name: "Verified Human", description: "Identity verified via Proof-of-Personhood", icon: Shield },
@@ -30,6 +34,9 @@ const judgeApplications = [
 export default function Profile() {
   const judge = mockJudgeProfile;
   const judgeLevel = getJudgeLevel(judge.score);
+  const [approveTarget, setApproveTarget] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<string | null>(null);
+  const [processedApps, setProcessedApps] = useState<Set<string>>(new Set());
 
   return (
     <div className="min-h-screen bg-background cyber-grid">
@@ -139,12 +146,18 @@ export default function Profile() {
                     ))}
                   </div>
                   <div className="flex gap-3">
-                    <Button className="gap-2 flex-1 bg-success text-success-foreground hover:bg-success/90">
-                      <CheckCircle2 className="h-4 w-4" /> Approve & Mint SBT
-                    </Button>
-                    <Button variant="destructive" className="gap-2 flex-1">
-                      <XCircle className="h-4 w-4" /> Reject
-                    </Button>
+                    {processedApps.has(app.id) ? (
+                      <div className="flex-1 text-center text-sm text-muted-foreground py-2">Processed</div>
+                    ) : (
+                      <>
+                        <Button className="gap-2 flex-1 bg-success text-success-foreground hover:bg-success/90" onClick={() => setApproveTarget(app.id)}>
+                          <CheckCircle2 className="h-4 w-4" /> Approve & Mint SBT
+                        </Button>
+                        <Button variant="destructive" className="gap-2 flex-1" onClick={() => setRejectTarget(app.id)}>
+                          <XCircle className="h-4 w-4" /> Reject
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))
@@ -152,6 +165,46 @@ export default function Profile() {
           </div>
         </div>
       </main>
+
+      {/* Approve Confirmation */}
+      <AlertDialog open={!!approveTarget} onOpenChange={(v) => !v && setApproveTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 font-display">
+              <CheckCircle2 className="h-5 w-5 text-success" /> Approve & Mint SBT
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mint a Soulbound Token for the applicant, granting them Juror access. This action is recorded on-chain.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-success text-success-foreground hover:bg-success/90" onClick={() => { if (approveTarget) setProcessedApps(prev => new Set(prev).add(approveTarget)); setApproveTarget(null); }}>
+              Confirm & Mint
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reject Confirmation */}
+      <AlertDialog open={!!rejectTarget} onOpenChange={(v) => !v && setRejectTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 font-display">
+              <XCircle className="h-5 w-5 text-destructive" /> Reject Application
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to reject this applicant? They will not receive a Juror SBT.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { if (rejectTarget) setProcessedApps(prev => new Set(prev).add(rejectTarget)); setRejectTarget(null); }}>
+              Confirm Reject
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,10 +1,10 @@
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { Lock, Calendar, FileText, CheckCircle2, AlertTriangle, Wallet, Upload, ShieldAlert, ImagePlus, X, Film, ArrowLeft } from "lucide-react";
+import { Lock, Calendar, FileText, CheckCircle2, AlertTriangle, Wallet, Upload, ShieldAlert, ImagePlus, X, Film, ArrowLeft, User, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { StatusBadge } from "@/components/StatusBadge";
-import { mockContracts } from "@/data/contracts";
+import { mockContracts, mockDisputes } from "@/data/contracts";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -106,79 +106,95 @@ function CommissionerEvidenceModal({ open, onOpenChange }: { open: boolean; onOp
   );
 }
 
-function ArtistEvidenceModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  const [files, setFiles] = useState<string[]>([]);
+function ArtistEvidenceModal({ open, onOpenChange, onSubmitted }: { open: boolean; onOpenChange: (v: boolean) => void; onSubmitted: () => void }) {
+  const [images, setImages] = useState<string[]>([]);
   const [hasVideo, setHasVideo] = useState(false);
   const [text, setText] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const maxImages = 6;
 
-  const addFile = () => {
-    setFiles([...files, `source_file_${files.length + 1}.psd`]);
+  const addImage = () => {
+    if (images.length < maxImages) {
+      setImages([...images, `defense_img_${images.length + 1}.png`]);
+    }
+  };
+  const removeImage = (idx: number) => {
+    setImages(images.filter((_, i) => i !== idx));
   };
 
-  const removeFile = (idx: number) => {
-    setFiles(files.filter((_, i) => i !== idx));
-  };
-
-  const canSubmit = text.trim().length > 0 && files.length >= 1;
+  const canSubmit = text.trim().length > 0 && images.length >= 1;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="font-display text-xl">Submit Artist Defense</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label className="text-sm">
-              Source Files <span className="text-muted-foreground">({files.length} files, min 1)</span>
-            </Label>
-            <div className="mt-2 space-y-2">
-              {files.map((f, i) => (
-                <div key={i} className="flex items-center justify-between rounded-lg border border-border bg-secondary p-2 text-xs font-mono text-muted-foreground">
-                  <span>{f}</span>
-                  <button onClick={() => removeFile(i)} className="rounded-full bg-destructive p-0.5 text-destructive-foreground">
-                    <X className="h-3 w-3" />
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Submit Artist Defense</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm">
+                Image Evidence <span className="text-muted-foreground">({images.length}/{maxImages}, min 1)</span>
+              </Label>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {images.map((img, i) => (
+                  <div key={i} className="relative flex h-24 items-center justify-center rounded-lg border border-border bg-secondary text-xs font-mono text-muted-foreground">
+                    {img}
+                    <button onClick={() => removeImage(i)} className="absolute -right-1 -top-1 rounded-full bg-destructive p-0.5 text-destructive-foreground">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {images.length < maxImages && (
+                  <button onClick={addImage} className="flex h-24 items-center justify-center rounded-lg border border-dashed border-border bg-secondary/50 text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors">
+                    <ImagePlus className="h-6 w-6" />
                   </button>
-                </div>
-              ))}
+                )}
+              </div>
+            </div>
+            <div>
+              <Label className="text-sm">Video Explanation <span className="text-muted-foreground">(optional)</span></Label>
               <button
-                onClick={addFile}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-secondary/50 p-3 text-sm text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
+                onClick={() => setHasVideo(!hasVideo)}
+                className={`mt-2 flex w-full items-center justify-center gap-2 rounded-lg border p-3 text-sm transition-colors ${
+                  hasVideo ? "border-success/30 bg-success/10 text-success" : "border-dashed border-border bg-secondary/50 text-muted-foreground hover:border-primary/40 hover:text-primary"
+                }`}
               >
-                <Upload className="h-4 w-4" /> Add Source File
+                <Film className="h-4 w-4" /> {hasVideo ? "✓ Video attached" : "Attach Video"}
               </button>
             </div>
+            <div className="space-y-2">
+              <Label>Written Defense <span className="text-destructive">*</span></Label>
+              <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Provide your defense and explain your work..." rows={4} required />
+            </div>
+            <Button className="w-full glow-primary" disabled={!canSubmit} onClick={() => setConfirmOpen(true)}>
+              Submit Evidence
+            </Button>
+            {!canSubmit && (
+              <p className="text-xs text-muted-foreground text-center">At least 1 image and written defense required</p>
+            )}
           </div>
-          <div>
-            <Label className="text-sm">Video Explanation <span className="text-muted-foreground">(optional)</span></Label>
-            <button
-              onClick={() => setHasVideo(!hasVideo)}
-              className={`mt-2 flex w-full items-center justify-center gap-2 rounded-lg border p-3 text-sm transition-colors ${
-                hasVideo ? "border-success/30 bg-success/10 text-success" : "border-dashed border-border bg-secondary/50 text-muted-foreground hover:border-primary/40 hover:text-primary"
-              }`}
-            >
-              <Film className="h-4 w-4" /> {hasVideo ? "✓ Video attached" : "Attach Video"}
-            </button>
-          </div>
-          <div className="space-y-2">
-            <Label>Written Defense <span className="text-destructive">*</span></Label>
-            <Textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Provide your defense and explain your work..."
-              rows={4}
-              required
-            />
-          </div>
-          <Button className="w-full glow-primary" disabled={!canSubmit}>
-            Submit Defense
-          </Button>
-          {!canSubmit && (
-            <p className="text-xs text-muted-foreground text-center">At least 1 source file and written defense required</p>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 font-display">
+              <ShieldAlert className="h-5 w-5 text-warning" /> Confirm Evidence Submission
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              After submitting your evidence, this contract will be sent to the Jury Court for arbitration. You will be notified of the verdict once all jurors have voted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => { setConfirmOpen(false); onOpenChange(false); onSubmitted(); }}>
+              Confirm & Submit
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -314,14 +330,43 @@ export default function ContractDetail() {
                     <Wallet className="h-4 w-4" /> Connect Wallet
                   </Button>
                 </div>
-              ) : isDisputed ? (
-                <div className="flex flex-col items-center justify-center gap-4 py-8">
-                  <ShieldAlert className="h-10 w-10 text-destructive" />
-                  <p className="text-sm text-muted-foreground text-center">Contract under arbitration. Submit your defense evidence.</p>
-                  <Button className="gap-2" onClick={() => setArtistEvidenceOpen(true)}>
-                    <FileText className="h-4 w-4" /> Submit Defense
-                  </Button>
-                </div>
+            ) : isDisputed ? (
+                (() => {
+                  const dispute = mockDisputes.find(d => d.contractId === contract.id);
+                  return (
+                    <div className="space-y-5">
+                      {/* Commissioner's complaint */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <User className="h-4 w-4 text-destructive" />
+                          <h3 className="font-display font-semibold text-sm">Commissioner's Complaint</h3>
+                          <span className="ml-auto font-mono text-xs text-muted-foreground">{dispute?.buyer}</span>
+                        </div>
+                        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-muted-foreground">
+                          {dispute?.buyerComplaint || "No complaint details available."}
+                        </div>
+                        {dispute && dispute.buyerImages.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><ImageIcon className="h-3 w-3" /> Evidence Images:</p>
+                            <div className="flex gap-2 flex-wrap">
+                              {dispute.buyerImages.map(f => (
+                                <span key={f} className="rounded bg-destructive/10 border border-destructive/20 px-2 py-1 text-xs font-mono text-destructive">{f}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Artist evidence submission */}
+                      <div className="border-t border-border pt-4">
+                        <h3 className="font-display font-semibold text-sm mb-3">Submit Your Defense</h3>
+                        <Button className="w-full gap-2 glow-primary" onClick={() => setArtistEvidenceOpen(true)}>
+                          <FileText className="h-4 w-4" /> Upload Evidence & Submit Defense
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })()
               ) : (
                 <div className="space-y-6">
                   <div>
@@ -383,7 +428,7 @@ export default function ContractDetail() {
       <CommissionerEvidenceModal open={evidenceOpen} onOpenChange={setEvidenceOpen} />
       
       {/* Artist Evidence */}
-      <ArtistEvidenceModal open={artistEvidenceOpen} onOpenChange={setArtistEvidenceOpen} />
+      <ArtistEvidenceModal open={artistEvidenceOpen} onOpenChange={setArtistEvidenceOpen} onSubmitted={() => navigate(-1)} />
     </div>
   );
 }
