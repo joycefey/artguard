@@ -322,15 +322,7 @@ export default function ContractDetail() {
                 </div>
               )
             ) : (
-              !walletConnected ? (
-                <div className="flex flex-col items-center justify-center gap-4 py-8">
-                  <Wallet className="h-10 w-10 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground text-center">Connect wallet to accept this commission and start working.</p>
-                  <Button className="gap-2 glow-primary" onClick={() => setWalletConnected(true)}>
-                    <Wallet className="h-4 w-4" /> Connect Wallet
-                  </Button>
-                </div>
-            ) : isDisputed ? (
+              isDisputed ? (
                 (() => {
                   const dispute = mockDisputes.find(d => d.contractId === contract.id);
                   return (
