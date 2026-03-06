@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Link as LinkIcon, Copy, Check, Coins, ImagePlus, X, AlertTriangle } from "lucide-react";
+import { CalendarIcon, Loader2, Check, Coins, ImagePlus, X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { Currency } from "@/data/contracts";
 
+// 🔥 引入区块链交互必须的钥匙和引擎
+import { ethers } from "ethers";
+import { MOCK_TOKEN_ADDRESS, MOCK_TOKEN_ABI, ESCROW_ADDRESS, ESCROW_ABI } from "@/lib/contracts";
+
 interface CreateEscrowModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -36,28 +40,57 @@ const currencies: { value: Currency; label: string; sub: string }[] = [
 export function CreateEscrowModal({ open, onOpenChange }: CreateEscrowModalProps) {
   const [step, setStep] = useState<"form" | "confirm" | "loading" | "success">("form");
   const [date, setDate] = useState<Date>();
-  const [copied, setCopied] = useState(false);
   const [currency, setCurrency] = useState<Currency>("AUSD");
   const [amount, setAmount] = useState("");
   const [title, setTitle] = useState("");
+  
+  // 画师的钱包地址
+  const [artistAddress, setArtistAddress] = useState(""); 
+  
   const [refImages, setRefImages] = useState<string[]>([]);
   const maxRefImages = 3;
-  const mockLink = "https://artguard.avax/escrow/ESC-0xF3A...7B";
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setStep("confirm");
   };
 
-  const handleConfirmCreate = () => {
-    setStep("loading");
-    setTimeout(() => setStep("success"), 2000);
-  };
+  // 核心逻辑：将资金真正打入智能合约
+  const handleConfirmCreate = async () => {
+    if (!window.ethereum) return alert("Please install MetaMask!");
+    if (!artistAddress.startsWith("0x") || artistAddress.length !== 42) {
+        alert("Please enter a valid 0x Artist Wallet Address!");
+        setStep("form");
+        return;
+    }
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(mockLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      setStep("loading"); 
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      const token = new ethers.Contract(MOCK_TOKEN_ADDRESS, MOCK_TOKEN_ABI, signer);
+      const escrow = new ethers.Contract(ESCROW_ADDRESS, ESCROW_ABI, signer);
+      
+      const parsedAmount = ethers.parseUnits(amount.toString(), 18);
+
+      try {
+        const mintTx = await token.mint(await signer.getAddress(), parsedAmount);
+        await mintTx.wait();
+      } catch (e) { console.log("Mint skip", e); }
+
+      const approveTx = await token.approve(ESCROW_ADDRESS, parsedAmount);
+      await approveTx.wait();
+
+      const createTx = await escrow.createOrder(artistAddress, parsedAmount);
+      await createTx.wait();
+
+      setStep("success");
+    } catch (error: any) {
+      console.error(error);
+      alert("Transaction failed: " + (error.reason || error.message));
+      setStep("form");
+    }
   };
 
   const addRefImage = () => {
@@ -75,10 +108,10 @@ export function CreateEscrowModal({ open, onOpenChange }: CreateEscrowModalProps
       setTimeout(() => {
         setStep("form");
         setDate(undefined);
-        setCopied(false);
         setCurrency("AUSD");
         setAmount("");
         setTitle("");
+        setArtistAddress(""); 
         setRefImages([]);
       }, 200);
     }
@@ -101,6 +134,12 @@ export function CreateEscrowModal({ open, onOpenChange }: CreateEscrowModalProps
                 <Label htmlFor="project">Title</Label>
                 <Input id="project" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Album Cover Art" required />
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="artist">Artist Wallet Address <span className="text-destructive">*</span></Label>
+                <Input id="artist" value={artistAddress} onChange={e => setArtistAddress(e.target.value)} placeholder="0x..." required />
+              </div>
+
               <div className="space-y-2">
                 <Label>Deadline</Label>
                 <Popover>
@@ -169,7 +208,7 @@ export function CreateEscrowModal({ open, onOpenChange }: CreateEscrowModalProps
                 </div>
               </div>
               <Button type="submit" className="w-full gap-2 glow-primary">
-                Lock Funds & Generate Link
+                Lock Funds on Avalanche
               </Button>
             </form>
           )}
@@ -177,27 +216,28 @@ export function CreateEscrowModal({ open, onOpenChange }: CreateEscrowModalProps
           {step === "loading" && (
             <div className="flex flex-col items-center gap-4 py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Locking funds on Avalanche...</p>
+              <p className="text-sm text-muted-foreground">Locking funds on Avalanche blockchain...</p>
+              <p className="text-xs text-muted-foreground text-center">Please approve the 2 transactions in your MetaMask.</p>
             </div>
           )}
 
+          {/* 🔥 优化的“锁仓成功”提示，去掉了复制链接 */}
           {step === "success" && (
-            <div className="space-y-4 animate-slide-up">
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-secondary/50 p-3">
-                <LinkIcon className="h-4 w-4 shrink-0 text-primary" />
-                <span className="truncate font-mono text-xs">{mockLink}</span>
-                <Button variant="ghost" size="sm" className="ml-auto shrink-0" onClick={handleCopy}>
-                  {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
-                </Button>
+            <div className="space-y-4 animate-slide-up flex flex-col items-center justify-center py-6 text-center">
+              <div className="h-16 w-16 bg-success/20 rounded-full flex items-center justify-center mb-4">
+                <Check className="h-8 w-8 text-success" />
               </div>
-              <p className="text-sm text-muted-foreground">Share this link with the Artist to begin the escrow.</p>
-              <Button variant="secondary" className="w-full" onClick={() => handleClose(false)}>Done</Button>
+              <h3 className="font-display text-xl font-bold">Funds Locked Successfully!</h3>
+              <p className="text-sm text-muted-foreground px-4">
+                Your AUSD has been securely locked in the ArtGuard Smart Contract. 
+                The artist will automatically see this commission in their workspace when they connect their wallet.
+              </p>
+              <Button className="w-full mt-4" onClick={() => handleClose(false)}>Return to Dashboard</Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Dialog */}
       <AlertDialog open={step === "confirm"} onOpenChange={(v) => { if (!v) setStep("form"); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -205,8 +245,9 @@ export function CreateEscrowModal({ open, onOpenChange }: CreateEscrowModalProps
               <AlertTriangle className="h-5 w-5 text-warning" /> Confirm Escrow Creation
             </AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to lock <strong>{amount} {currency}</strong> for "<strong>{title}</strong>" in a smart contract.
-              This amount will be held in escrow until the commission is completed or disputed. Proceed?
+              You are about to lock <strong>{amount} {currency}</strong> in a smart contract.
+              <br/><br/>
+              This amount will be held securely on the Avalanche blockchain until the commission is completed or arbitrated by a judge.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

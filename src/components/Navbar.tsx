@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Wallet, Shield, Menu, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+
+// 🔥 1. 引入 ethers 引擎
+import { ethers } from "ethers";
 
 interface NavbarProps {
   role?: "commissioner" | "artist" | "juror";
@@ -19,8 +22,30 @@ const roleNavItems: Record<string, { label: string; path: string }[]> = {
 export function Navbar({ role }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
-  // Always show as connected when on a dashboard page (user connected on landing)
-  const walletConnected = !!role;
+  
+  // 🔥 2. 新增一个状态来保存真实的钱包地址
+  const [account, setAccount] = useState<string>("");
+
+  // 🔥 3. 自动向小狐狸询问当前的钱包地址
+  useEffect(() => {
+    const fetchAccount = async () => {
+      if (window.ethereum) {
+        try {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const signer = await provider.getSigner();
+          setAccount(await signer.getAddress());
+        } catch (e) {
+          console.error("未连接钱包", e);
+        }
+      }
+    };
+    
+    fetchAccount();
+    // 监听：如果用户在小狐狸里切换了账号，这里也会跟着变
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', fetchAccount);
+    }
+  }, []);
 
   const navItems = role ? roleNavItems[role] ?? [] : [];
 
@@ -54,13 +79,12 @@ export function Navbar({ role }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="gap-2"
-          >
+          <Button variant="secondary" size="sm" className="gap-2">
             <Wallet className="h-4 w-4" />
-            <span className="font-mono text-xs">0x7F...3B</span>
+            {/* 🔥 4. 显示真实的钱包地址 */}
+            <span className="font-mono text-xs">
+              {account ? `${account.slice(0,6)}...${account.slice(-4)}` : "Not Connected"}
+            </span>
           </Button>
           {navItems.length > 0 && (
             <button

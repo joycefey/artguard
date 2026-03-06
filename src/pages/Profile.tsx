@@ -1,210 +1,142 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { User, Gavel, Shield, Award, TrendingUp, CheckCircle2, Lock } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
-import { 
-  Shield, Award, TrendingUp, Coins, User, Gavel, 
-  Clock, CheckCircle2, XCircle
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { mockJudgeProfile, getJudgeLevel, judgeLevels } from "@/data/contracts";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ethers } from "ethers";
 
-const badges = [
-  { name: "Verified Human", description: "Identity verified via Proof-of-Personhood", icon: Shield },
-  { name: "Genesis Juror", description: "Early adopter juror — Season 1", icon: Award },
-];
-
-const judgeApplications = [
-  {
-    id: "APP-001",
-    applicant: "0xA3...F7",
-    portfolio: ["landscape_01.jpg", "portrait_02.jpg", "abstract_03.jpg"],
-    experience: "5 years freelance illustration, 200+ NFT commissions completed.",
-  },
-  {
-    id: "APP-002",
-    applicant: "0xB9...12",
-    portfolio: ["3d_model_01.jpg", "character_02.jpg"],
-    experience: "3D artist specializing in game assets. Shipped 3 indie titles.",
-  },
+// 🔥 这里填入了你给的唯一法官 C 账户地址
+const JUROR_WHITELIST = [
+  "0xfB9d218823Db78Ded9EAF4Ac9641EC38dD7122Eb"
 ];
 
 export default function Profile() {
-  const judge = mockJudgeProfile;
-  const judgeLevel = getJudgeLevel(judge.score);
-  const [approveTarget, setApproveTarget] = useState<string | null>(null);
-  const [rejectTarget, setRejectTarget] = useState<string | null>(null);
-  const [processedApps, setProcessedApps] = useState<Set<string>>(new Set());
+  const [account, setAccount] = useState("");
+
+  useEffect(() => {
+    const fetchAccount = async () => {
+      if (window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        setAccount(await signer.getAddress());
+      }
+    };
+    fetchAccount();
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', fetchAccount);
+    }
+  }, []);
+
+  // 🔥 权限校验：只允许白名单内的地址访问
+  const isAuthorized = account && (
+    JUROR_WHITELIST.map(a => a.toLowerCase()).includes(account.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-background cyber-grid">
       <Navbar role="juror" />
       <main className="container max-w-4xl py-8">
-        <div className="mb-8 flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 border border-primary/30">
-            <User className="h-7 w-7 text-primary" />
+        
+        {/* 🔴 如果不是你的 C 账户，直接拦截！ */}
+        {!isAuthorized && account ? (
+          <div className="flex flex-col items-center justify-center py-20 rounded-xl border border-destructive/30 bg-destructive/5 text-center px-4 mt-8">
+             <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
+               <Lock className="h-10 w-10 text-destructive" />
+             </div>
+             <h2 className="font-display text-2xl font-bold text-destructive mb-2">Access Denied</h2>
+             <p className="text-muted-foreground max-w-md">
+               Your wallet address is not on the Juror Whitelist. Juror Profiles are restricted to verified legal experts holding the SBT Badge.
+             </p>
           </div>
-          <div>
-            <h1 className="font-display text-2xl font-bold">0x7F...3B</h1>
-            <p className="text-sm text-muted-foreground">Juror Profile</p>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <h2 className="font-display text-xl font-bold flex items-center gap-2">
-            <Gavel className="h-5 w-5 text-primary" /> Juror Dashboard
-          </h2>
-          
-          {/* Judge Level */}
-          <div className="rounded-xl border border-primary/20 bg-card p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display font-semibold">Juror Level</h3>
-              <span className={`font-display font-bold text-lg ${judgeLevel.color}`}>
-                {judgeLevel.label}
-              </span>
-            </div>
-            <div className="w-full rounded-full bg-secondary h-2">
-              <div 
-                className="h-2 rounded-full bg-primary transition-all" 
-                style={{ width: `${Math.min((judge.score / 500) * 100, 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Score: {judge.score}</span>
-              <span>Accuracy: {(judge.accuracy * 100).toFixed(0)}%</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              {judgeLevels.map(l => (
-                <div key={l.level} className={`rounded-lg p-2 border ${l.level === judgeLevel.level ? 'border-primary/40 bg-primary/10' : 'border-border'}`}>
-                  <p className={`font-display font-bold text-sm ${l.color}`}>{l.label}</p>
-                  <p className="text-xs text-muted-foreground">{l.minScore}+ pts</p>
-                  <p className="text-xs text-muted-foreground">≤{l.maxAmount ? `$${l.maxAmount}` : '∞'}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-              <div className="flex items-center gap-2 text-muted-foreground"><TrendingUp className="h-4 w-4" /><span className="text-xs">Total Cases</span></div>
-              <p className="font-mono text-2xl font-bold">{judge.totalCases}</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-              <div className="flex items-center gap-2 text-muted-foreground"><Award className="h-4 w-4" /><span className="text-xs">Correct</span></div>
-              <p className="font-mono text-2xl font-bold">{judge.correctCases}<span className="text-sm text-muted-foreground">/{judge.totalCases}</span></p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-              <div className="flex items-center gap-2 text-muted-foreground"><Coins className="h-4 w-4" /><span className="text-xs">Total Earned</span></div>
-              <p className="font-mono text-2xl font-bold">{judge.totalEarned} <span className="text-sm text-muted-foreground">AVAX</span></p>
-            </div>
-          </div>
-
-          {/* SBT Badges */}
-          <div>
-            <h3 className="font-display text-lg font-semibold mb-4">Soulbound Badges (SBTs)</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {badges.map((badge) => (
-                <div key={badge.name} className="flex items-center gap-4 rounded-xl border border-primary/20 bg-card p-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/15">
-                    <badge.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-display font-semibold text-sm">{badge.name}</h4>
-                    <p className="text-xs text-muted-foreground">{badge.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Governance */}
-          <div>
-            <h3 className="font-display text-lg font-semibold mb-1">New Juror Applications</h3>
-            <p className="text-sm text-muted-foreground mb-4">As a Mid+ Juror, you can review new applicants.</p>
-            {judgeLevel.level === "junior" ? (
-              <div className="rounded-xl border border-border bg-card p-5 text-center">
-                <p className="text-sm text-muted-foreground">Mid level or above required to review applications</p>
+        ) : (
+          /* 🟢 白名单法官看到的真实档案界面 */
+          <div className="animate-slide-up">
+            <div className="mb-8 flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 border border-primary/30">
+                <User className="h-8 w-8 text-primary" />
               </div>
-            ) : (
-              judgeApplications.map((app) => (
-                <div key={app.id} className="rounded-xl border border-border bg-card p-5 space-y-4 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-mono text-xs text-muted-foreground">{app.id}</span>
-                      <h4 className="font-display font-semibold">{app.applicant}</h4>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{app.experience}</p>
-                  <div className="flex gap-2 flex-wrap">
-                    {app.portfolio.map((file) => (
-                      <div key={file} className="flex h-20 w-20 items-center justify-center rounded-lg bg-secondary border border-border text-xs font-mono text-muted-foreground">
-                        {file.split("_")[0]}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-3">
-                    {processedApps.has(app.id) ? (
-                      <div className="flex-1 text-center text-sm text-muted-foreground py-2">Processed</div>
-                    ) : (
-                      <>
-                        <Button className="gap-2 flex-1 bg-success text-success-foreground hover:bg-success/90" onClick={() => setApproveTarget(app.id)}>
-                          <CheckCircle2 className="h-4 w-4" /> Approve & Mint SBT
-                        </Button>
-                        <Button variant="destructive" className="gap-2 flex-1" onClick={() => setRejectTarget(app.id)}>
-                          <XCircle className="h-4 w-4" /> Reject
-                        </Button>
-                      </>
-                    )}
-                  </div>
+              <div>
+                <h1 className="font-display text-3xl font-bold tracking-tight">
+                  {/* 🔥 显示真实的法官地址 */}
+                  {account ? `${account.slice(0,6)}...${account.slice(-4)}` : "Loading..."}
+                </h1>
+                <p className="text-sm text-muted-foreground">Juror Profile</p>
+              </div>
+            </div>
+
+            <h2 className="font-display text-xl font-bold flex items-center gap-2 mb-4">
+              <Gavel className="h-5 w-5 text-primary" /> Juror Dashboard
+            </h2>
+
+            <div className="rounded-xl border border-border bg-card p-6 mb-8 shadow-sm">
+              <div className="flex justify-between items-end mb-2">
+                <span className="font-semibold">Juror Level</span>
+                <span className="text-primary font-bold">Mid</span>
+              </div>
+              <div className="h-2 w-full bg-secondary rounded-full mb-2 overflow-hidden">
+                <div className="h-full bg-primary w-[60%] rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]"></div>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground mb-6">
+                <span>Score: 320</span>
+                <span>Accuracy: 85%</span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="rounded-lg border border-border bg-secondary/30 p-4 text-center">
+                  <p className="font-semibold text-muted-foreground">Junior</p>
+                  <p className="text-xs text-muted-foreground">0+ pts</p>
+                  <p className="text-xs text-muted-foreground">≤$1000</p>
                 </div>
-              ))
-            )}
+                <div className="rounded-lg border border-primary/50 bg-primary/10 p-4 text-center shadow-[inset_0_0_20px_rgba(var(--primary),0.1)]">
+                  <p className="font-semibold text-primary">Mid</p>
+                  <p className="text-xs text-primary/80">200+ pts</p>
+                  <p className="text-xs text-primary/80">≤$5000</p>
+                </div>
+                <div className="rounded-lg border border-border bg-secondary/30 p-4 text-center">
+                  <p className="font-semibold text-destructive">Senior</p>
+                  <p className="text-xs text-muted-foreground">500+ pts</p>
+                  <p className="text-xs text-muted-foreground">∞</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3 mb-8">
+              <div className="rounded-xl border border-border bg-card p-5 space-y-2">
+                <div className="flex items-center gap-2 text-muted-foreground"><TrendingUp className="h-4 w-4" /><span className="text-xs">Total Cases</span></div>
+                <p className="font-mono text-2xl font-bold">20</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-5 space-y-2">
+                <div className="flex items-center gap-2 text-muted-foreground"><CheckCircle2 className="h-4 w-4" /><span className="text-xs">Correct</span></div>
+                <p className="font-mono text-2xl font-bold">17<span className="text-sm text-muted-foreground">/20</span></p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-5 space-y-2">
+                <div className="flex items-center gap-2 text-muted-foreground"><Award className="h-4 w-4" /><span className="text-xs">Total Earned</span></div>
+                <p className="font-mono text-2xl font-bold">15 <span className="text-sm text-muted-foreground">AVAX</span></p>
+              </div>
+            </div>
+
+            <h3 className="font-display font-semibold text-lg mb-4">Soulbound Badges (SBTs)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-success/10">
+                  <Shield className="h-6 w-6 text-success" />
+                </div>
+                <div>
+                  <h4 className="font-bold">Verified Human</h4>
+                  <p className="text-xs text-muted-foreground">Identity verified via Proof-of-Personhood</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/20">
+                  <Award className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h4 className="font-bold">Genesis Juror</h4>
+                  <p className="text-xs text-muted-foreground">Early adopter juror — Season 1</p>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </main>
-
-      {/* Approve Confirmation */}
-      <AlertDialog open={!!approveTarget} onOpenChange={(v) => !v && setApproveTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 font-display">
-              <CheckCircle2 className="h-5 w-5 text-success" /> Approve & Mint SBT
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              This will mint a Soulbound Token for the applicant, granting them Juror access. This action is recorded on-chain.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-success text-success-foreground hover:bg-success/90" onClick={() => { if (approveTarget) setProcessedApps(prev => new Set(prev).add(approveTarget)); setApproveTarget(null); }}>
-              Confirm & Mint
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Reject Confirmation */}
-      <AlertDialog open={!!rejectTarget} onOpenChange={(v) => !v && setRejectTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 font-display">
-              <XCircle className="h-5 w-5 text-destructive" /> Reject Application
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to reject this applicant? They will not receive a Juror SBT.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { if (rejectTarget) setProcessedApps(prev => new Set(prev).add(rejectTarget)); setRejectTarget(null); }}>
-              Confirm Reject
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

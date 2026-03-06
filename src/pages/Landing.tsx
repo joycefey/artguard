@@ -8,6 +8,12 @@ import {
 } from "@/components/ui/dialog";
 import { mockDisputes } from "@/data/contracts";
 
+// 🔥 1. 引入真实的区块链连接引擎
+import { ethers } from "ethers";
+
+// 🔥 2. 告诉代码检查员 Window 里有钱包，防止红线报错
+declare global { interface Window { ethereum: any; } }
+
 const stats = [
   { label: "Total Escrowed", value: "$2.4M+", icon: Lock },
   { label: "Cases Resolved", value: "1,200+", icon: Scale },
@@ -150,7 +156,6 @@ export default function Landing() {
   const navigate = useNavigate();
   const [walletDialog, setWalletDialog] = useState<string | null>(null);
   const [jurorDialog, setJurorDialog] = useState(false);
-  const [jurorAddress, setJurorAddress] = useState("");
   const [jurorVerifying, setJurorVerifying] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
@@ -162,26 +167,59 @@ export default function Landing() {
     }
   };
 
-  const handleWalletConnect = () => {
-    setConnecting(true);
-    setTimeout(() => {
-      setConnecting(false);
+  // 🔥 3. 真实的连接钱包逻辑 (买家/画师)
+  const handleWalletConnect = async () => {
+    if (!window.ethereum) {
+      alert("Please install MetaMask extension first! (请先安装 MetaMask 钱包插件)");
+      return;
+    }
+    
+    try {
+      setConnecting(true);
+      // 唤起小狐狸钱包请求连接
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []); 
+      
+      // 连接成功后，关闭弹窗并跳转到对应页面
       setWalletDialog(null);
       if (walletDialog === "commissioner") {
         navigate("/commissioner");
       } else if (walletDialog === "artist") {
         navigate("/artist");
       }
-    }, 1500);
+    } catch (error) {
+      console.error("Connection failed:", error);
+      alert("Failed to connect wallet. (连接钱包失败或被拒绝)");
+    } finally {
+      setConnecting(false);
+    }
   };
 
-  const handleJurorVerify = () => {
-    setJurorVerifying(true);
-    setTimeout(() => {
+  // 🔥 4. 真实的法官验证逻辑 (MVP阶段也是连钱包)
+  const handleJurorVerify = async () => {
+    if (!window.ethereum) {
+      alert("Please install MetaMask extension first! (请先安装 MetaMask 钱包插件)");
+      return;
+    }
+    
+    try {
+      setJurorVerifying(true);
+      // 唤起小狐狸钱包请求连接
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []); 
+      
+      // 模拟验证 SBT 勋章的时间 (让体验更真实)
+      setTimeout(() => {
+        setJurorDialog(false);
+        navigate("/court");
+      }, 1000);
+      
+    } catch (error) {
+      console.error("Verification failed:", error);
+      alert("Failed to connect wallet. (连接钱包失败或被拒绝)");
+    } finally {
       setJurorVerifying(false);
-      setJurorDialog(false);
-      navigate("/court");
-    }, 2000);
+    }
   };
 
   return (
@@ -261,7 +299,7 @@ export default function Landing() {
           </DialogHeader>
           <Button onClick={handleWalletConnect} disabled={connecting} className="w-full gap-2 glow-primary">
             {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
-            {connecting ? "Connecting..." : "Connect Wallet"}
+            {connecting ? "Connecting to MetaMask..." : "Connect MetaMask"}
           </Button>
         </DialogContent>
       </Dialog>
@@ -275,7 +313,7 @@ export default function Landing() {
             </DialogTitle>
             <DialogDescription className="leading-relaxed">
               The Court is reserved for verified Jurors who hold a valid Juror Badge (SBT). 
-              Please enter your wallet address so we can verify your credentials before granting access to the arbitration hall.
+              Please connect your wallet so we can verify your credentials before granting access to the arbitration hall.
             </DialogDescription>
           </DialogHeader>
           <Button
@@ -284,7 +322,7 @@ export default function Landing() {
             className="w-full gap-2 glow-primary"
           >
             {jurorVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
-            {jurorVerifying ? "Verifying Badge..." : "Connect Wallet & Verify"}
+            {jurorVerifying ? "Verifying On-Chain Identity..." : "Connect MetaMask & Verify"}
           </Button>
         </DialogContent>
       </Dialog>
